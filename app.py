@@ -41,15 +41,35 @@ if fichier:
         risk_metrics
     )
 
-    # Valeurs temporaires pour éviter les erreurs
-    te = 0
-    ir = 0
-    dv01 = 0
-    convexity = 0
-    var95 = 0
-    cvar95 = 0
-    mdd = 0
-    sharpe = 0
+from modules.committee_kpis import (
+    compute_committee_kpis
+)
+
+committee = compute_committee_kpis(
+
+    perf_df["SANADATE_VL"],
+
+    perf_df["BONDS_VL"],
+
+    sensi_df["SANADATE"].iloc[-1]
+
+)
+
+te = committee["tracking_error"]
+
+ir = committee["information_ratio"]
+
+sharpe = committee["sharpe"]
+
+var95 = committee["var95"]
+
+cvar95 = committee["cvar95"]
+
+mdd = committee["max_drawdown"]
+
+dv01 = committee["dv01"]
+
+convexity = committee["convexity"]
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [
