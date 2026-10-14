@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+
 def compute_performance(df):
 
     mapping = {
@@ -24,7 +25,7 @@ def compute_performance(df):
 
         perf_col, ytd_col = cols
 
-        returns = pd.to_numeric(
+        r = pd.to_numeric(
             df[perf_col],
             errors="coerce"
         ).dropna()
@@ -34,55 +35,44 @@ def compute_performance(df):
             errors="coerce"
         ).dropna()
 
-        if len(returns) == 0:
+        if len(r) == 0:
             continue
 
-        # conversion éventuelle %
-        if abs(returns.mean()) > 0.20:
-            returns = returns / 100
+        # conversion si données en %
+        if abs(r.mean()) > 1:
+            r = r / 100
 
-        if len(ytd) > 0 and abs(ytd.iloc[-1]) > 20:
-            perf_ytd = ytd.iloc[-1] / 100
-        else:
-            perf_ytd = ytd.iloc[-1]
+        perf_hebdo = r.iloc[-1]
 
-        volatility = (
-            returns.std()
+        perf_ytd = ytd.iloc[-1]
+
+        if abs(perf_ytd) > 1:
+            perf_ytd = perf_ytd / 100
+
+        volatilite = (
+            r.std()
             * np.sqrt(52)
         )
 
         sharpe = 0
 
-        if volatility > 0:
+        if volatilite > 0:
 
             sharpe = (
-                returns.mean() * 52
-            ) / volatility
-
-        perf_annualisee = (
-            (1 + perf_ytd)
-            ** (52 / len(returns))
-            - 1
-        )
+                r.mean() * 52
+            ) / volatilite
 
         result.append({
 
             "Fonds": fonds,
 
-            "Perf Hebdo":
-            returns.iloc[-1],
+            "Perf Hebdo": perf_hebdo,
 
-            "Perf YTD":
-            perf_ytd,
+            "Perf YTD": perf_ytd,
 
-            "Perf Annualisée":
-            perf_annualisee,
+            "Volatilité": volatilite,
 
-            "Volatilité":
-            volatility,
-
-            "Sharpe":
-            sharpe
+            "Sharpe": sharpe
 
         })
 
