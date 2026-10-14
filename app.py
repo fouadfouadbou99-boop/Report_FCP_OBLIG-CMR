@@ -52,21 +52,76 @@ if fichier:
         ]
     )
 
-    with tab1:
+with tab1:
 
-        st.subheader("KPIs Exécutifs")
+    st.subheader("KPIs Exécutifs")
 
-        st.dataframe(
-            perf_metrics,
-            width="stretch"
+    st.dataframe(
+        perf_metrics,
+        width="stretch"
+    )
+
+    st.subheader("KPIs Comité d'Investissement")
+
+    col1,col2,col3,col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Tracking Error",
+            f"{te:.2%}"
         )
 
-        st.plotly_chart(
-            plot_risk_return(
-                perf_metrics
-            ),
-            width="stretch"
+    with col2:
+        st.metric(
+            "Information Ratio",
+            round(ir,2)
         )
+
+    with col3:
+        st.metric(
+            "DV01",
+            round(dv01,2)
+        )
+
+    with col4:
+        st.metric(
+            "Convexité",
+            round(convexity,2)
+        )
+
+    col5,col6,col7,col8 = st.columns(4)
+
+    with col5:
+        st.metric(
+            "VaR 95%",
+            f"{var95:.2%}"
+        )
+
+    with col6:
+        st.metric(
+            "CVaR 95%",
+            f"{cvar95:.2%}"
+        )
+
+    with col7:
+        st.metric(
+            "Max Drawdown",
+            f"{mdd:.2%}"
+        )
+
+    with col8:
+        st.metric(
+            "Sharpe",
+            round(sharpe,2)
+        )
+
+    st.plotly_chart(
+        plot_risk_return(
+            perf_metrics
+        ),
+        width="stretch"
+    )
+``
 
     with tab2:
 
