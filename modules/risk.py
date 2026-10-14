@@ -1,69 +1,60 @@
 import pandas as pd
-import nump***s np
+import numpy as np
+
 
 def max_drawdown(nav):
 
-  ***d = nav/nav.cummax()-1
+    drawdown = nav / nav.cummax() - 1
 
-    retu***dd.min()
+    return drawdown.min()
 
-def compute_risk_metri***
-        perf_df,
-        sensi_***):
+
+def compute_risk_metrics(perf_df, sensi_df):
 
     result = []
 
-    mapping***{
-
-        "SANADATE":"SAN***TE_VL",
-***     "BONDS":"BONDS_VL",
-***     "***IGATIONS":"OBLIG_VL"
-
+    mapping = {
+        "SANADATE": "SANADATE_VL",
+        "BONDS": "BONDS_VL",
+        "OBLIGATIONS": "OBLIG_VL"
     }
 
-   ***r nom,col in mapping.items():
+    for nom, col in mapping.items():
 
- ***    nav = perf_df[col].dropna()
-***      r = nav.pct_change().dropn***
+        if col not in perf_df.columns:
+            continue
 
-        var95 = np.percentile(***)
+        nav = perf_df[col].dropna()
 
-        var99 = np.percentile***1)
+        if len(nav) < 2:
+            continue
 
-        cvar95 = (
-         ***r[r<=var95].mean()
+        r = nav.pct_change().dropna()
+
+        var95 = np.percentile(r, 5)
+        var99 = np.percentile(r, 1)
+
+        cvar95 = r[r <= var95].mean()
+        cvar99 = r[r <= var99].mean()
+
+        vol_ann = r.std() * np.sqrt(52)
+
+        mdd = max_drawdown(nav)
+
+        result.append(
+            {
+                "Fonds": nom,
+                "Volatilité": vol_ann,
+                "VaR95": var95,
+                "VaR99": var99,
+                "CVaR95": cvar95,
+                "CVaR99": cvar99,
+                "Max Drawdown": mdd,
+                "Worst Week": r.min(),
+                "Best Week": r.max(),
+                "Skewness": r.skew(),
+                "Kurtosis": r.kurt()
+            }
         )
 
-  ***   cvar99 = (
-            r[r<=v***9].mean()
-        )
-
-        vol***n = (
-            r.std***            * np.sqrt(52)
-      ***
-
-        mdd***max_drawdown(nav)
-
-        resul***ppend({
-
-            "Fonds":nom***            "Volatilité":vol_ann***            "VaR95":var95,
-
-    ***     "VaR99":var99,
-
-           *****R95":cvar95,
-
-            "CVaR9***cvar99,
-
-            "Max Drawdo***:mdd,
-
-            "***st Week":r.min(),
-
-            "***t Week":r.max(),
-
-            "S***ness":r.skew(),
-
-            "***tosis":r.kurt()
-
-        })
-
-   ***turn pd.DataFrame(result)
+    return pd.DataFrame(result)
