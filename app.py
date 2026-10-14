@@ -156,7 +156,25 @@ convexity = committee["convexity"]
             ),
             width="stretch"
         )
+from modules.exports_excel import (
+    export_excel
+)
 
+excel_file = export_excel(
+    perf_metrics,
+    risk_metrics
+)
+
+st.download_button(
+
+    "📥 Export Excel",
+
+    data=excel_file,
+
+    file_name="Rapport_FCP.xlsx",
+
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
     # --------------------------------------------------
     # PERFORMANCES
     # --------------------------------------------------
