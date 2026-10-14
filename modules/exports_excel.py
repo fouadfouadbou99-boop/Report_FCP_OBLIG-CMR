@@ -1,15 +1,28 @@
-from openpyxl import Workbook
+from io import BytesIO
+import pandas as pd
 
-def export_excel(df):
 
-    wb = Workbook()
+def export_excel(
+        perf_metrics,
+        risk_metrics):
 
-    ws = wb.active
+    output = BytesIO()
 
-    ws.title = "KPIs"
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
 
-    filename = "Rapport_FCP.xlsx"
+        perf_metrics.to_excel(
+            writer,
+            sheet_name="Performance",
+            index=False
+        )
 
-    wb.save(filename)
+        risk_metrics.to_excel(
+            writer,
+            sheet_name="Risque",
+            index=False
+        )
 
-    return filename
+    return output.getvalue()
