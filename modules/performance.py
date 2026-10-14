@@ -12,7 +12,7 @@ def compute_performance(df):
 
     result = []
 
-    for nom, col in mapping.items():
+    for fonds, col in mapping.items():
 
         if col not in df.columns:
             continue
@@ -28,8 +28,8 @@ def compute_performance(df):
         returns = nav.pct_change().dropna()
 
         perf_cum = (
-            nav.iloc[-1] /
-            nav.iloc[0]
+            nav.iloc[-1]
+            / nav.iloc[0]
             - 1
         )
 
@@ -48,8 +48,7 @@ def compute_performance(df):
 
         if vol > 0:
             sharpe = (
-                returns.mean()
-                * 52
+                returns.mean() * 52
             ) / vol
 
         wealth = (
@@ -62,9 +61,34 @@ def compute_performance(df):
             - 1
         )
 
+        max_dd = drawdown.min()
+
+        calmar = 0
+
+        if max_dd != 0:
+            calmar = perf_ann / abs(max_dd)
+
+        downside = returns[
+            returns < 0
+        ]
+
+        sortino = 0
+
+        if len(downside) > 0:
+
+            downside_vol = (
+                downside.std()
+                * np.sqrt(52)
+            )
+
+            if downside_vol > 0:
+                sortino = (
+                    returns.mean() * 52
+                ) / downside_vol
+
         result.append({
 
-            "Fonds": nom,
+            "Fonds": fonds,
 
             "Perf Cumulée": perf_cum,
 
@@ -74,7 +98,11 @@ def compute_performance(df):
 
             "Sharpe": sharpe,
 
-            "Max Drawdown": drawdown.min()
+            "Sortino": sortino,
+
+            "Max Drawdown": max_dd,
+
+            "Calmar": calmar
 
         })
 
