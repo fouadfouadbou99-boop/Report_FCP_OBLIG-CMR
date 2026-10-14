@@ -1,21 +1,35 @@
-import numpy as np
 import pandas as pd
-
-def annualized_return(r):
-
-    return (1+r.mean())**52 - 1
-
-def sharpe_ratio(r):
-
-    vol = r.std()
-
-    if vol == 0:
-        return 0
-
-    return r.mean() / vol
+import numpy as np
 
 def compute_performance(df):
 
-    result = pd.DataFrame()
+    fonds = {
+        "SANADATE":"SANADATE_PERF_W",
+        "BONDS":"BONDS_PERF_W",
+        "OBLIGATIONS":"OBLIG_PERF_W"
+    }
 
-    return result
+    result = []
+
+    for nom,col in fonds.items():
+
+        r = df[col].dropna()
+
+        vol = r.std()*np.sqrt(52)
+
+        annual_return*= (
+            (1+r.mean())**52
+ ***    )-1
+
+        sharpe = 0
+
+   ***  if vol != 0:
+            sharp*** annual_return/vol
+
+        resu***append({
+            "Fonds":nom***           "Perf anualisée":annu***return,
+            "Volatilité"***l,
+            "Sharpe":sharpe
+ ***    })
+
+    return pd.DataFrame(***ult)
