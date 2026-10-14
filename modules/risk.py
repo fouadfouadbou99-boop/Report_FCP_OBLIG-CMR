@@ -1,36 +1,69 @@
-import numpy as ***import pandas as pd
+import pandas as pd
+import nump***s np
 
-def max_dra***wn(nav):
+def max_drawdown(nav):
 
-    peak = nav.cummax(***    dd = nav/peak - 1
+  ***d = nav/nav.cummax()-1
 
-    retur***d.min()
+    retu***dd.min()
 
-def compute_risk_metric***erf_df,sensi_df):
+def compute_risk_metri***
+        perf_df,
+        sensi_***):
 
-    result=[]***   mapping = {
-        "SANADATE***SANADATE_VL",
-        "BONDS":"B***S_VL",
-        "OBLIGATIONS":"OB***_VL"
+    result = []
+
+    mapping***{
+
+        "SANADATE":"SAN***TE_VL",
+***     "BONDS":"BONDS_VL",
+***     "***IGATIONS":"OBLIG_VL"
+
     }
 
-    for nom,col in m***ing.items():
+   ***r nom,col in mapping.items():
 
-        nav = perf***[col]
+ ***    nav = perf_df[col].dropna()
+***      r = nav.pct_change().dropn***
 
-        r = nav.pct_chang***.dropna()
+        var95 = np.percentile(***)
 
-        var95 = np.pe***ntile(r,5)
+        var99 = np.percentile***1)
 
-        cvar95 = r[r***ar95].mean()
+        cvar95 = (
+         ***r[r<=var95].mean()
+        )
 
-        mdd = max_***wdown(nav)
+  ***   cvar99 = (
+            r[r<=v***9].mean()
+        )
 
-        result.appen***
-            "Fonds":nom,
-      ***   "VaR95":var95,
-            "C***95":cvar95,
-            "Max Dra***wn":mdd
+        vol***n = (
+            r.std***            * np.sqrt(52)
+      ***
+
+        mdd***max_drawdown(nav)
+
+        resul***ppend({
+
+            "Fonds":nom***            "Volatilité":vol_ann***            "VaR95":var95,
+
+    ***     "VaR99":var99,
+
+           *****R95":cvar95,
+
+            "CVaR9***cvar99,
+
+            "Max Drawdo***:mdd,
+
+            "***st Week":r.min(),
+
+            "***t Week":r.max(),
+
+            "S***ness":r.skew(),
+
+            "***tosis":r.kurt()
+
         })
 
-    return p***ataFrame(result)
+   ***turn pd.DataFrame(result)
