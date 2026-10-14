@@ -1,60 +1,51 @@
-import pandas as pd
 import numpy as np
 
+def var_historique(series, confidence=0.95):
 
-def max_drawdown(nav):
+    return np.percentile(
+        series.dropna(),
+        (1-confidence)*100
+    )
 
-    drawdown = nav / nav.cummax() - 1
+def c*ar*series, confidence=0.95):
 
-    return drawdown.min()
+    var*= var_historique(
+        series,
+*       confidence
+    )
 
+    retur* series[
+        series <= var
+    ].mean()
 
-def compute_risk_metrics(perf_df, sensi_df):
+def max_drawdown(series)*
 
-    result = []
+    cumulative = (1 + series).cu*prod()
 
-    mapping = {
-        "SANADATE": "SANADATE_VL",
-        "BONDS": "BONDS_VL",
-        "OBLIGATIONS": "OBLIG_VL"
-    }
+    running_max = cumulati*e.cummax()
 
-    for nom, col in mapping.items():
+    drawdown = (
+     *  cumulative-running_max
+    ) / r*nning_max
 
-        if col not in perf_df.columns:
-            continue
+    return drawdown.min*)
 
-        nav = perf_df[col].dropna()
+def tracking_error(fund, benchmark):
 
-        if len(nav) < 2:
-            continue
+    diff = fund - benchmark
 
-        r = nav.pct_change().dropna()
+    return diff.std()*np.sqrt(52)
 
-        var95 = np.percentile(r, 5)
-        var99 = np.percentile(r, 1)
+def information_ratio(fund, benchmark):
 
-        cvar95 = r[r <= var95].mean()
-        cvar99 = r[r <= var99].mean()
+    alpha = (
+        fund.mean()
+        - benchmark.mean()
+    ) * 52
 
-        vol_ann = r.std() * np.sqrt(52)
+    te = tracking_error(
+        fund,
+        benchmark
+    )
 
-        mdd = max_drawdown(nav)
-
-        result.append(
-            {
-                "Fonds": nom,
-                "Volatilité": vol_ann,
-                "VaR95": var95,
-                "VaR99": var99,
-                "CVaR95": cvar95,
-                "CVaR99": cvar99,
-                "Max Drawdown": mdd,
-                "Worst Week": r.min(),
-                "Best Week": r.max(),
-                "Skewness": r.skew(),
-                "Kurtosis": r.kurt()
-            }
-        )
-
-    return pd.DataFrame(result)
+    return alpha/te if te else 0
