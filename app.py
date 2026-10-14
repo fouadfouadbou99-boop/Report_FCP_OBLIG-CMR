@@ -3,6 +3,7 @@ import streamlit as st
 from modules.data_loader import load_data
 from modules.performance import compute_performance
 from modules.risk import compute_risk_metrics
+from modules.committee_comments import generate_comment
 
 from modules.charts import (
     plot_nav,
@@ -11,8 +12,6 @@ from modules.charts import (
     plot_sensitivity,
     plot_risk_return
 )
-
-from modules.committee_comments import generate_comment
 
 st.set_page_config(
     page_title="FCP Obligataire",
@@ -42,6 +41,16 @@ if fichier:
         risk_metrics
     )
 
+    # Valeurs temporaires pour éviter les erreurs
+    te = 0
+    ir = 0
+    dv01 = 0
+    convexity = 0
+    var95 = 0
+    cvar95 = 0
+    mdd = 0
+    sharpe = 0
+
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [
             "Dashboard",
@@ -52,76 +61,85 @@ if fichier:
         ]
     )
 
-with tab1:
+    # --------------------------------------------------
+    # DASHBOARD
+    # --------------------------------------------------
 
-    st.subheader("KPIs Exécutifs")
+    with tab1:
 
-    st.dataframe(
-        perf_metrics,
-        width="stretch"
-    )
+        st.subheader("KPIs Exécutifs")
 
-    st.subheader("KPIs Comité d'Investissement")
-
-    col1,col2,col3,col4 = st.columns(4)
-
-    with col1:
-        st.metric(
-            "Tracking Error",
-            f"{te:.2%}"
+        st.dataframe(
+            perf_metrics,
+            width="stretch"
         )
 
-    with col2:
-        st.metric(
-            "Information Ratio",
-            round(ir,2)
+        st.subheader(
+            "KPIs Comité d'Investissement"
         )
 
-    with col3:
-        st.metric(
-            "DV01",
-            round(dv01,2)
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            st.metric(
+                "Tracking Error",
+                f"{te:.2%}"
+            )
+
+        with col2:
+            st.metric(
+                "Information Ratio",
+                f"{ir:.2f}"
+            )
+
+        with col3:
+            st.metric(
+                "DV01",
+                f"{dv01:.4f}"
+            )
+
+        with col4:
+            st.metric(
+                "Convexité",
+                f"{convexity:.2f}"
+            )
+
+        col5, col6, col7, col8 = st.columns(4)
+
+        with col5:
+            st.metric(
+                "VaR 95 %",
+                f"{var95:.2%}"
+            )
+
+        with col6:
+            st.metric(
+                "CVaR 95 %",
+                f"{cvar95:.2%}"
+            )
+
+        with col7:
+            st.metric(
+                "Max Drawdown",
+                f"{mdd:.2%}"
+            )
+
+        with col8:
+            st.metric(
+                "Sharpe",
+                f"{sharpe:.2f}"
+            )
+
+        st.plotly_chart(
+            plot_risk_return(
+                perf_metrics
+            ),
+            width="stretch"
         )
 
-    with col4:
-        st.metric(
-            "Convexité",
-            round(convexity,2)
-        )
-
-    col5,col6,col7,col8 = st.columns(4)
-
-    with col5:
-        st.metric(
-            "VaR 95%",
-            f"{var95:.2%}"
-        )
-
-    with col6:
-        st.metric(
-            "CVaR 95%",
-            f"{cvar95:.2%}"
-        )
-
-    with col7:
-        st.metric(
-            "Max Drawdown",
-            f"{mdd:.2%}"
-        )
-
-    with col8:
-        st.metric(
-            "Sharpe",
-            round(sharpe,2)
-        )
-
-    st.plotly_chart(
-        plot_risk_return(
-            perf_metrics
-        ),
-        width="stretch"
-    )
-``
+    # --------------------------------------------------
+    # PERFORMANCES
+    # --------------------------------------------------
 
     with tab2:
 
@@ -135,6 +153,10 @@ with tab1:
             width="stretch"
         )
 
+    # --------------------------------------------------
+    # RISQUES
+    # --------------------------------------------------
+
     with tab3:
 
         st.dataframe(
@@ -143,9 +165,15 @@ with tab1:
         )
 
         st.plotly_chart(
-            plot_drawdown(perf_df),
+            plot_drawdown(
+                perf_df
+            ),
             width="stretch"
         )
+
+    # --------------------------------------------------
+    # SENSIBILITES
+    # --------------------------------------------------
 
     with tab4:
 
@@ -155,6 +183,10 @@ with tab1:
             ),
             width="stretch"
         )
+
+    # --------------------------------------------------
+    # COMITE
+    # --------------------------------------------------
 
     with tab5:
 
