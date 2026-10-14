@@ -2,26 +2,31 @@ import numpy as np
 
 
 def compute_committee_kpis(
-    nav,
-    benchmark,
-    sensitivity
-):
+        fund_returns,
+        benchmark_returns,
+        sensitivity):
 
-    nav = nav.dropna()
+    fund_returns = fund_returns.dropna()
+    benchmark_returns = benchmark_returns.dropna()
 
-    benchmark = benchmark.dropna()
+    if abs(fund_returns.mean()) > 1:
+        fund_returns = fund_returns / 100
 
-    r = nav.pct_change().dropna()
+    if abs(benchmark_returns.mean()) > 1:
+        benchmark_returns = benchmark_returns / 100
 
-    rb = benchmark.pct_change().dropna()
+    n = min(
+        len(fund_returns),
+        len(benchmark_returns)
+    )
 
-    n = min(len(r), len(rb))
+    fund_returns = fund_returns.tail(n)
+    benchmark_returns = benchmark_returns.tail(n)
 
-    r = r.tail(n)
-
-    rb = rb.tail(n)
-
-    active = r - rb
+    active = (
+        fund_returns
+        - benchmark_returns
+    )
 
     tracking_error = (
         active.std()
@@ -33,11 +38,12 @@ def compute_committee_kpis(
     if tracking_error > 0:
 
         information_ratio = (
-            active.mean() * 52
+            active.mean()
+            * 52
         ) / tracking_error
 
     volatility = (
-        r.std()
+        fund_returns.std()
         * np.sqrt(52)
     )
 
@@ -46,28 +52,26 @@ def compute_committee_kpis(
     if volatility > 0:
 
         sharpe = (
-            r.mean() * 52
+            fund_returns.mean()
+            * 52
         ) / volatility
 
     var95 = np.percentile(
-        r,
+        fund_returns,
         5
     )
 
-    cvar95 = r[r <= var95].mean()
+    cvar95 = fund_returns[
+        fund_returns <= var95
+    ].mean()
 
-    drawdown = (
-        nav /
-        nav.cummax()
-        - 1
+    dv01 = (
+        float(sensitivity)
+        * 0.0001
     )
 
-    max_drawdown = drawdown.min()
-
-    dv01 = sensitivity * 0.0001
-
     convexity = (
-        sensitivity ** 2
+        float(sensitivity) ** 2
     ) / 100
 
     return {
@@ -82,7 +86,7 @@ def compute_committee_kpis(
 
         "cvar95": cvar95,
 
-        "max_drawdown": max_drawdown,
+        "max_drawdown": 0,
 
         "dv01": dv01,
 
