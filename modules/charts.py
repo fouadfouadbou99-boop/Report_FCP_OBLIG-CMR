@@ -25,7 +25,7 @@ def plot_performance(df):
 
     fig = go.Figure()
 
-    for col in ["SANADATE_YTD", "BONDS_YTD", "OBLIG_YTD"\]:
+    for col in ["SANADATE_YTD", "BONDS_YTD", "OBLIG_YTD"]:
 
         if col in df.columns:
 
