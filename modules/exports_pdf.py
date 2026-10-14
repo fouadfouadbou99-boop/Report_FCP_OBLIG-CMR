@@ -1,25 +1,46 @@
+from io import BytesIO
+
 from reportlab.platypus import (
     SimpleDocTemplate,
-    Paragraph
+    Paragraph,
+    Spacer
 )
 
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import (
+    getSampleStyleSheet
+)
+
 
 def export_pdf(commentaire):
 
-    filename = "Rapport_FCP.pdf"
+    buffer = BytesIO()
 
-    doc = SimpleDocTemplate(filename)
+    doc = SimpleDocTemplate(
+        buffer
+    )
 
     styles = getSampleStyleSheet()
 
-    story = [
+    content = [
+
+        Paragraph(
+            "Rapport Comité",
+            styles["Title"]
+        ),
+
+        Spacer(1,12),
+
         Paragraph(
             commentaire,
-            styles["Normal"]
+            styles["BodyText"]
         )
+
     ]
 
-    doc.build(story)
+    doc.build(content)
 
-    return filename
+    pdf = buffer.getvalue()
+
+    buffer.close()
+
+    return pdf
