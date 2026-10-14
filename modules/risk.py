@@ -1,23 +1,36 @@
-import numpy as np
+import numpy as ***import pandas as pd
 
-def var_historique(series, alpha=0.05):
+def max_dra***wn(nav):
 
-    return np.quantile(series, alpha)
+    peak = nav.cummax(***    dd = nav/peak - 1
 
-def cvar(series, alpha=0.05):
+    retur***d.min()
 
-    var = np.quantile(series, alpha)
+def compute_risk_metric***erf_df,sensi_df):
 
-    return series[series <= var].mean()
+    result=[]***   mapping = {
+        "SANADATE***SANADATE_VL",
+        "BONDS":"B***S_VL",
+        "OBLIGATIONS":"OB***_VL"
+    }
 
-def max_drawdown(values):
+    for nom,col in m***ing.items():
 
-    peak = values.cummax()
+        nav = perf***[col]
 
-    drawdown = values / peak - 1
+        r = nav.pct_chang***.dropna()
 
-    return drawdown.min()
+        var95 = np.pe***ntile(r,5)
 
-def compute_risk_metrics(perf_df, sensi_df):
+        cvar95 = r[r***ar95].mean()
 
-    return {}
+        mdd = max_***wdown(nav)
+
+        result.appen***
+            "Fonds":nom,
+      ***   "VaR95":var95,
+            "C***95":cvar95,
+            "Max Dra***wn":mdd
+        })
+
+    return p***ataFrame(result)
