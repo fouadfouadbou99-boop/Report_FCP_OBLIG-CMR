@@ -74,7 +74,7 @@ if fichier is not None:
 
             committee = compute_committee_kpis(
                 perf_df["SANADATE_VL"],
-                perf_df["BONDS_VL"],
+                perf_df["MBI_MT"],
                 float(
                     sensi_df["SANADATE"]
                     .dropna()
