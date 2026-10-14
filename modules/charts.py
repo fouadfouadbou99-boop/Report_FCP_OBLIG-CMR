@@ -1,37 +1,67 @@
 import plotly.express as px
+import plotly.graph_objects as go
 
 def plot_nav(df):
 
-    fig = px.line(
-        df,
-        x="Date",
-        y=["SANADATE","BONDS","OBLIGATIONS"]
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["Date"],
+            y=df["SANADATE_VL"],
+            name="SANADATE"
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["Date"],
+            y=df["BONDS_VL"],
+            name="BONDS"
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["Date"],
+            y=df["OBLIG_VL"],
+            name="OBLIGATIONS"
+        )
+    )
+
+    fig.update_layout(
+        title="Evolution des VL"
     )
 
     return fig
+
 
 def plot_performance(df):
 
-    fig = px.line(
-        df
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["Date"],
+            y=df["SANADATE_YTD"],
+            name="SANADATE"
+        )
     )
 
-    return fig
+    fig.add_trace(
+        go.Scatter(
+            x=df["Date"],
+            y=df["BONDS_YTD"],
+            name="BONDS"
+        )
+    )
 
-def plot_drawdown(df):
-
-    fig = px.area(df)
-
-    return fig
-
-def plot_sensitivity(df):
-
-    fig = px.line(df)
-
-    return fig
-
-def plot_risk_return(df):
-
-    fig = px.scatter(df)
+    fig.add_trace(
+        go.Scatter(
+            x=df["Date"],
+            y=df["OBLIG_YTD"],
+            name="OBLIGATIONS"
+        )
+    )
 
     return fig
