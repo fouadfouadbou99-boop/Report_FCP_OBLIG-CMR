@@ -71,7 +71,7 @@ dv01 = committee["dv01"]
 
 convexity = committee["convexity"]
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [
             "Dashboard",
             "Performances",
