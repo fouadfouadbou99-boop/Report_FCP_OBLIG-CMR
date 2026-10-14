@@ -6,7 +6,7 @@ def plot_nav(df):
 
     fig = go.Figure()
 
-    for col in ["SANADATE_VL", "BONDS_VL", "OBLIG_VL"\]:
+    for col in ["SANADATE_VL", "BONDS_VL", "OBLIG_VL"]:
 
         if col in df.columns:
 
@@ -44,7 +44,7 @@ def plot_drawdown(df):
 
     fig = go.Figure()
 
-    for col in ["SANADATE_VL", "BONDS_VL", "OBLIG_VL"\]:
+    for col in ["SANADATE_VL", "BONDS_VL", "OBLIG_VL"]:
 
         if col in df.columns:
 
@@ -65,7 +65,7 @@ def plot_sensitivity(df):
 
     fig = go.Figure()
 
-    for col in ["SANADATE", "BONDS", "OBLIGATIONS"\]:
+    for col in ["SANADATE", "BONDS", "OBLIGATIONS"]:
 
         if col in df.columns:
 
