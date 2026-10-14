@@ -95,3 +95,4 @@ def plot_risk_return(df):
         )
 
     return go.Figure()
+``
