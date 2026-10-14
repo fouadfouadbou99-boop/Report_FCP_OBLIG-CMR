@@ -1,22 +1,23 @@
-def generate_comment(perf***sk):
+def generate_comment(perf_metrics, risk_metrics):
 
-    txt = """
-## Commentai***de Gestion
+    commentaire = """
+## Commentaire de Gestion
 
-Les performances des***ois fonds obligataires demeurent***nalisées
-par la hausse des rende***ts ayant affecté les valorisatio***obligataires durant l'exercice.
-*** volatilité observée reste modér***et cohérente avec le profil
-de r***ue attendu pour des portefeuille***nvestis majoritairement
-en oblig***ons souveraines et assimilées.
+Les performances observées sur la période demeurent principalement influencées
+par les mouvements de la courbe des taux.
 
-*** indicateurs de risque demeurent***us contrôle. Les niveaux
-de VaR ***de drawdown restent compatibles ***c les limites de
-gestion fixées *** le Comité d'Investissement.
+Les indicateurs de risque restent globalement maîtrisés et compatibles avec
+les limites de gestion fixées par le Comité d’Investissement.
 
-Un***ttention particulière est accord***à l'évolution de la
-courbe des t***, à l'ajustement des sensibilité***t au pilotage
-de la duration afi***'améliorer la performance relati***au
-benchmark sur les prochains m***.
+Les niveaux de volatilité, de VaR et de drawdown demeurent sous surveillance
+dans un contexte de marché toujours sensible aux variations de taux.
+
+La gestion poursuit une approche prudente fondée sur l’optimisation du couple
+rendement/risque, le pilotage de la sensibilité et la recherche d’opportunités
+sur les différentes maturités de la courbe.
+
+Les portefeuilles conservent un profil cohérent avec les objectifs de gestion
+et les contraintes réglementaires applicables aux fonds obligataires.
 """
 
-    return txt
+    return commentaire
