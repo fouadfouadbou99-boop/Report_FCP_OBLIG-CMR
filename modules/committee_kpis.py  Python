@@ -2,28 +2,24 @@ import numpy as np
 
 
 def compute_committee_kpis(
-        nav,
+        returns,
         benchmark,
         sensitivity):
 
-    nav = nav.dropna()
+    returns = returns.dropna()
 
     benchmark = benchmark.dropna()
 
-    returns = nav.pct_change().dropna()
-
-    bench_returns = benchmark.pct_change().dropna()
-
     n = min(
         len(returns),
-        len(bench_returns)
+        len(benchmark)
     )
 
     returns = returns.tail(n)
 
-    bench_returns = bench_returns.tail(n)
+    benchmark = benchmark.tail(n)
 
-    active = returns - bench_returns
+    active = returns - benchmark
 
     tracking_error = (
         active.std()
@@ -62,36 +58,37 @@ def compute_committee_kpis(
         returns <= var95
     ].mean()
 
-    drawdown = (
-        nav /
-        nav.cummax()
-        - 1
+    dv01 = (
+        float(sensitivity)
+        * 0.0001
     )
 
-    max_drawdown = drawdown.min()
-
-    dv01 = float(sensitivity) * 0.0001
-
     convexity = (
-        float(sensitivity) ** 2
+        float(sensitivity)
+        ** 2
     ) / 100
 
     return {
 
-        "tracking_error": tracking_error,
+        "tracking_error":
+        tracking_error,
 
-        "information_ratio": information_ratio,
+        "information_ratio":
+        information_ratio,
 
-        "sharpe": sharpe,
+        "sharpe":
+        sharpe,
 
-        "var95": var95,
+        "var95":
+        var95,
 
-        "cvar95": cvar95,
+        "cvar95":
+        cvar95,
 
-        "max_drawdown": max_drawdown,
+        "dv01":
+        dv01,
 
-        "dv01": dv01,
-
-        "convexity": convexity
+        "convexity":
+        convexity
 
     }
