@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import linregress
+
 
 def sharpe_ratio(r):
 
@@ -9,7 +9,8 @@ def sharpe_ratio(r):
     if vol == 0:
         return 0
 
-    return r.mean()/vol
+    return r.mean() / vol
+
 
 def sortino_ratio(r):
 
@@ -23,62 +24,65 @@ def sortino_ratio(r):
     if downside_std == 0:
         return 0
 
-    return r.mean()/downside_std
+    return r.mean() / downside_std
+
 
 def annualized_return(r):
 
-    return ((1+r).prod())**(52/len(r))-1
+    if len(r) == 0:
+        return 0
 
-def compute_perfor**nce(df):
+    return ((1 + r).prod()) ** (52 / len(r)) - 1
+
+
+def compute_performance(df):
 
     fonds = {
-        "**NADATE":"SANADATE_VL",
-        "B**DS":"BONDS_VL",
-        "OBLIGATI**S":"OBLIG_VL"
+        "SANADATE": "SANADATE_VL",
+        "BONDS": "BONDS_VL",
+        "OBLIGATIONS": "OBLIG_VL"
     }
 
-    result =**]
+    result = []
 
-    for nom,col in fonds.items**:
+    for nom, col in fonds.items():
 
-        nav = df[col].dropna()**        r = nav.pct_change().drop**()
+        if col not in df.columns:
+            continue
 
-        perf_ann = annualized**eturn(r)
+        nav = df[col].dropna()
 
-        vol = r.std()*n***qrt(52)
+        if len(nav) < 2:
+            continue
 
-        sharpe = sharpe***tio(r)
+        r = nav.pct_change().dropna()
 
-        sortino = sortin***atio(r)
+        perf_ann = annualized_return(r)
 
-        perf_total = (
-***         nav.iloc[-1]/nav.iloc[0]-1
-        )
+        vol = r.std() * np.sqrt(52)
 
-        mdd = (
-    ***     nav/nav.cummax()-1
-        ***in()
+        sharpe = sharpe_ratio(r)
+
+        sortino = sortino_ratio(r)
+
+        perf_total = nav.iloc[-1] / nav.iloc[0] - 1
+
+        mdd = (nav / nav.cummax() - 1).min()
 
         calmar = 0
 
-      ***f abs(mdd) > 0:
-            calm***= perf_ann/abs(mdd)
+        if abs(mdd) > 0:
+            calmar = perf_ann / abs(mdd)
 
-        res***.append({
+        result.append({
+            "Fonds": nom,
+            "Perf Cumulée": perf_total,
+            "Perf Annualisée": perf_ann,
+            "Volatilité": vol,
+            "Sharpe": sharpe,
+            "Sortino": sortino,
+            "Max Drawdown": mdd,
+            "Calmar": calmar
+        })
 
-            "Fonds":n***
-
-            "Perf Cumulée":per***otal,
-
-            "Perf Annuali***":perf_ann,
-
-            "Volati***é":vol,
-
-            "Sharpe":sh***e,
-
-            "Sortino":sortin***
-            "Max Drawdown":mdd,***           "Calmar":calmar
-
-    *** })
-
-    return pd.DataFrame(res***)
+    return pd.DataFrame(result)
