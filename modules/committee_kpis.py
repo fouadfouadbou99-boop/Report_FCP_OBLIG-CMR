@@ -2,20 +2,26 @@ import numpy as np
 
 
 def compute_committee_kpis(
-        nav,
-        benchmark,
-        sensitivity):
+    nav,
+    benchmark,
+    sensitivity
+):
 
-    returns = nav.pct_change().dropna()
+    nav = nav.dropna()
 
-    bench = benchmark.pct_change().dropna()
+    benchmark = benchmark.dropna()
 
-    n = min(len(returns), len(bench))
+    r = nav.pct_change().dropna()
 
-    returns = returns[-n:]
-    bench = bench[-n:]
+    rb = benchmark.pct_change().dropna()
 
-    active = returns - bench
+    n = min(len(r), len(rb))
+
+    r = r.tail(n)
+
+    rb = rb.tail(n)
+
+    active = r - rb
 
     tracking_error = (
         active.std()
@@ -27,12 +33,11 @@ def compute_committee_kpis(
     if tracking_error > 0:
 
         information_ratio = (
-            active.mean()
-            * 52
+            active.mean() * 52
         ) / tracking_error
 
     volatility = (
-        returns.std()
+        r.std()
         * np.sqrt(52)
     )
 
@@ -41,24 +46,29 @@ def compute_committee_kpis(
     if volatility > 0:
 
         sharpe = (
-            returns.mean()
-            * 52
+            r.mean() * 52
         ) / volatility
 
     var95 = np.percentile(
-        returns,
+        r,
         5
     )
 
-    cvar95 = returns[
-        returns <= var95
-    ].mean()
+    cvar95 = r[r <= var95].mean()
 
     drawdown = (
-        nav / nav.cummax() - 1
+        nav /
+        nav.cummax()
+        - 1
     )
 
     max_drawdown = drawdown.min()
+
+    dv01 = sensitivity * 0.0001
+
+    convexity = (
+        sensitivity ** 2
+    ) / 100
 
     return {
 
@@ -74,6 +84,8 @@ def compute_committee_kpis(
 
         "max_drawdown": max_drawdown,
 
-        "sensitivity": sensitivity
+        "dv01": dv01,
+
+        "convexity": convexity
 
     }
