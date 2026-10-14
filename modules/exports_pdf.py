@@ -1,46 +1,22 @@
-from io import BytesIO
+from fpdf import FPDF
 
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer
-)
+def create_pdf(commentary):
 
-from reportlab.lib.styles import (
-    getSampleStyleSheet
-)
+    pdf = FPDF()
 
+    pdf.add_page()
 
-def export_pdf(commentaire):
-
-    buffer = BytesIO()
-
-    doc = SimpleDocTemplate(
-        buffer
+    pdf.set_font(
+        "Arial",
+        size=12
     )
 
-    styles = getSampleStyleSheet()
+    pdf.multi_cell(
+        0,
+        8,
+        commentary
+    )
 
-    content = [
-
-        Paragraph(
-            "Rapport Comité",
-            styles["Title"]
-        ),
-
-        Spacer(1,12),
-
-        Paragraph(
-            commentaire,
-            styles["BodyText"]
-        )
-
-    ]
-
-    doc.build(content)
-
-    pdf = buffer.getvalue()
-
-    buffer.close()
-
-    return pdf
+    return pdf.output(
+        dest="S"
+    )
