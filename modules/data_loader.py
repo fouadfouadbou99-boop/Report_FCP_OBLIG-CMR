@@ -1,39 +1,49 @@
 import pandas as pd
 
-def load_data(file):
 
-    perf = pd.read_excel(
-        file,
-        sheet_name="Data Perf"
+def load_data(uploaded_file):
+
+    # DATA PERF
+
+    perf_raw = pd.read_excel(
+        uploaded_file,
+        sheet_name="Data Perf",
+        header=None
     )
 
-    sensi = pd.read_excel(
-        file,
+    # Historique VL
+
+    perf_df = pd.DataFrame()
+
+    perf_df["Date"] = perf_raw.iloc[63:105, 1].values
+
+    perf_df["SANADATE_VL"] = perf_raw.iloc[63:105, 2].values
+
+    perf_df["SANADATE_PERF_W"] = perf_raw.iloc[63:105, 3].values
+
+    perf_df["SANADATE_YTD"] = perf_raw.iloc[63:105, 4].values
+
+    perf_df["BONDS_VL"] = perf_raw.iloc[63:105, 5].values
+
+    perf_df["BONDS_PERF_W"] = perf_raw.iloc[63:105, 6].values
+
+    perf_df["BONDS_YTD"] = perf_raw.iloc[63:105, 7].values
+
+    perf_df["OBLIG_VL"] = perf_raw.iloc[63:105, 8].values
+
+    perf_df["OBLIG_PERF_W"] = perf_raw.iloc[63:105, 9].values
+
+    perf_df["OBLIG_YTD"] = perf_raw.iloc[63:105, 10].values
+
+    perf_df = perf_df.dropna()
+
+    # SENSIBILITES
+
+    sens_raw = pd.read_excel(
+        uploaded_file,
         sheet_name="Data Sensibilité"
     )
 
-    perf.columns = [
-        "Date",
-        "SANADATE_VL",
-        "SANADATE_PERF_W",
-        "SANADATE_YTD",
-        "BONDS_VL",
-        "BONDS_PERF_W",
-        "BONDS_YTD",
-        "OBLIG_VL",
-        "OBLIG_PERF_W",
-        "OBLIG_YTD",
-        "MBI_MT",
-        "BENCH_PERF",
-        "BENCH_SPREAD",
-        "VOL_BENCH"
-    ]
+    sens_df = sens_raw.copy()
 
-    perf["Date"] = pd.to_datetime(
-        perf["Date"],
-        errors="coerce"
-    )
-
-    perf = perf.dropna(subset=["Date"])
-
-    return perf, sensi
+    return perf_df, sens_df
