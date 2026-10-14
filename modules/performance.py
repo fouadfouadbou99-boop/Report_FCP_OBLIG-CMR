@@ -4,46 +4,57 @@ import numpy as np
 
 def compute_performance(df):
 
-    fonds = {
-        "SANADATE": "SANADATE_PERF_W",
-        "BONDS": "BONDS_PERF_W",
-        "OBLIGATIONS": "OBLIG_PERF_W"
+    mapping = {
+        "SANADATE": "SANADATE_VL",
+        "BONDS": "BONDS_VL",
+        "OBLIGATIONS": "OBLIG_VL"
     }
 
-    lignes = []
+    result = []
 
-    for nom, col in fonds.items():
+    for nom, col in mapping.items():
 
         if col not in df.columns:
             continue
 
-        r = pd.to_numeric(
+        nav = pd.to_numeric(
             df[col],
             errors="coerce"
         ).dropna()
 
-        # conversion %
-        if r.abs().mean() > 0.10:
-            r = r / 100
+        if len(nav) < 2:
+            continue
 
-        perf_cum = (1 + r).prod() - 1
+        returns = nav.pct_change().dropna()
 
-        perf_ann = (
-            (1 + perf_cum)
-            ** (52 / len(r))
+        perf_cum = (
+            nav.iloc[-1] /
+            nav.iloc[0]
             - 1
         )
 
-        vol = r.std() * np.sqrt(52)
+        perf_ann = (
+            (1 + perf_cum)
+            ** (52 / len(returns))
+            - 1
+        )
+
+        vol = (
+            returns.std()
+            * np.sqrt(52)
+        )
 
         sharpe = 0
 
-        if vol != 0:
+        if vol > 0:
             sharpe = (
-                r.mean() * 52
+                returns.mean()
+                * 52
             ) / vol
 
-        wealth = (1 + r).cumprod()
+        wealth = (
+            1 + returns
+        ).cumprod()
 
         drawdown = (
             wealth /
@@ -51,7 +62,7 @@ def compute_performance(df):
             - 1
         )
 
-        lignes.append({
+        result.append({
 
             "Fonds": nom,
 
@@ -67,4 +78,4 @@ def compute_performance(df):
 
         })
 
-    return pd.DataFrame(lignes)
+    return pd.DataFrame(result)
