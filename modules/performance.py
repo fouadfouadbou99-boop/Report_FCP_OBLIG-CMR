@@ -1,108 +1,88 @@
 import pandas as pd
 import numpy as np
 
-
 def compute_performance(df):
 
     mapping = {
-        "SANADATE": "SANADATE_VL",
-        "BONDS": "BONDS_VL",
-        "OBLIGATIONS": "OBLIG_VL"
+        "SANADATE": (
+            "SANADATE_PERF_W",
+            "SANADATE_YTD"
+        ),
+        "BONDS": (
+            "BONDS_PERF_W",
+            "BONDS_YTD"
+        ),
+        "OBLIGATIONS": (
+            "OBLIG_PERF_W",
+            "OBLIG_YTD"
+        )
     }
 
     result = []
 
-    for fonds, col in mapping.items():
+    for fonds, cols in mapping.items():
 
-        if col not in df.columns:
-            continue
+        perf_col, ytd_col = cols
 
-        nav = pd.to_numeric(
-            df[col],
+        returns = pd.to_numeric(
+            df[perf_col],
             errors="coerce"
         ).dropna()
 
-        if len(nav) < 2:
+        ytd = pd.to_numeric(
+            df[ytd_col],
+            errors="coerce"
+        ).dropna()
+
+        if len(returns) == 0:
             continue
 
-        returns = nav.pct_change().dropna()
+        # conversion éventuelle %
+        if abs(returns.mean()) > 0.20:
+            returns = returns / 100
 
-        perf_cum = (
-            nav.iloc[-1]
-            / nav.iloc[0]
-            - 1
-        )
+        if len(ytd) > 0 and abs(ytd.iloc[-1]) > 20:
+            perf_ytd = ytd.iloc[-1] / 100
+        else:
+            perf_ytd = ytd.iloc[-1]
 
-        perf_ann = (
-            (1 + perf_cum)
-            ** (52 / len(returns))
-            - 1
-        )
-
-        vol = (
+        volatility = (
             returns.std()
             * np.sqrt(52)
         )
 
         sharpe = 0
 
-        if vol > 0:
+        if volatility > 0:
+
             sharpe = (
                 returns.mean() * 52
-            ) / vol
+            ) / volatility
 
-        wealth = (
-            1 + returns
-        ).cumprod()
-
-        drawdown = (
-            wealth /
-            wealth.cummax()
+        perf_annualisee = (
+            (1 + perf_ytd)
+            ** (52 / len(returns))
             - 1
         )
-
-        max_dd = drawdown.min()
-
-        calmar = 0
-
-        if max_dd != 0:
-            calmar = perf_ann / abs(max_dd)
-
-        downside = returns[
-            returns < 0
-        ]
-
-        sortino = 0
-
-        if len(downside) > 0:
-
-            downside_vol = (
-                downside.std()
-                * np.sqrt(52)
-            )
-
-            if downside_vol > 0:
-                sortino = (
-                    returns.mean() * 52
-                ) / downside_vol
 
         result.append({
 
             "Fonds": fonds,
 
-            "Perf Cumulée": perf_cum,
+            "Perf Hebdo":
+            returns.iloc[-1],
 
-            "Perf Annualisée": perf_ann,
+            "Perf YTD":
+            perf_ytd,
 
-            "Volatilité": vol,
+            "Perf Annualisée":
+            perf_annualisee,
 
-            "Sharpe": sharpe,
+            "Volatilité":
+            volatility,
 
-            "Sortino": sortino,
-
-            "Max Drawdown": max_dd,
-
-            "Calmar": calmar
+            "Sharpe":
+            sharpe
 
         })
 
