@@ -13,6 +13,22 @@ from modules.charts import (
     plot_risk_return
 )
 
+try:
+    from modules.committee_kpis import compute_committee_kpis
+except:
+    compute_committee_kpis = None
+
+try:
+    from modules.exports_excel import export_excel
+except:
+    export_excel = None
+
+try:
+    from modules.exports_pdf import export_pdf
+except:
+    export_pdf = None
+
+
 st.set_page_config(
     page_title="FCP Obligataire",
     layout="wide"
@@ -21,11 +37,11 @@ st.set_page_config(
 st.title("📊 Dashboard FCP Obligataire")
 
 fichier = st.file_uploader(
-    "Importer le fichier KPI",
+    "Importer le fichier Excel",
     type=["xlsx"]
 )
 
-if fichier:
+if fichier is not None:
 
     perf_df, sensi_df = load_data(fichier)
 
@@ -41,37 +57,75 @@ if fichier:
         risk_metrics
     )
 
-from modules.committee_kpis import (
-    compute_committee_kpis
-)
+    # Valeurs par défaut
+    te = 0
+    ir = 0
+    sharpe = 0
+    var95 = 0
+    cvar95 = 0
+    mdd = 0
+    dv01 = 0
+    convexity = 0
 
-committee = compute_committee_kpis(
+    # KPI Comité
+    if compute_committee_kpis is not None:
 
-    perf_df["SANADATE_VL"],
+        try:
 
-    perf_df["BONDS_VL"],
+            committee = compute_committee_kpis(
+                perf_df["SANADATE_VL"],
+                perf_df["BONDS_VL"],
+                float(
+                    sensi_df["SANADATE"]
+                    .dropna()
+                    .iloc[-1]
+                )
+            )
 
-    sensi_df["SANADATE"].iloc[-1]
+            te = committee["tracking_error"]
+            ir = committee["information_ratio"]
+            sharpe = committee["sharpe"]
+            var95 = committee["var95"]
+            cvar95 = committee["cvar95"]
+            mdd = committee["max_drawdown"]
+            dv01 = committee["dv01"]
+            convexity = committee["convexity"]
 
-)
+        except Exception as e:
 
-te = committee["tracking_error"]
+            st.warning(
+                f"KPI Comité non disponibles : {e}"
+            )
 
-ir = committee["information_ratio"]
+    # Exports
+    excel_file = None
+    pdf_file = None
 
-sharpe = committee["sharpe"]
+    if export_excel is not None:
 
-var95 = committee["var95"]
+        try:
 
-cvar95 = committee["cvar95"]
+            excel_file = export_excel(
+                perf_metrics,
+                risk_metrics
+            )
 
-mdd = committee["max_drawdown"]
+        except:
+            pass
 
-dv01 = committee["dv01"]
+    if export_pdf is not None:
 
-convexity = committee["convexity"]
+        try:
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
+            pdf_file = export_pdf(
+                commentaire
+            )
+
+        except:
+            pass
+
+    # Onglets
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [
             "Dashboard",
             "Performances",
@@ -81,9 +135,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
         ]
     )
 
-    # --------------------------------------------------
     # DASHBOARD
-    # --------------------------------------------------
 
     with tab1:
 
@@ -100,55 +152,47 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 
         col1, col2, col3, col4 = st.columns(4)
 
-        with col1:
-            st.metric(
-                "Tracking Error",
-                f"{te:.2%}"
-            )
+        col1.metric(
+            "Tracking Error",
+            f"{te:.2%}"
+        )
 
-        with col2:
-            st.metric(
-                "Information Ratio",
-                f"{ir:.2f}"
-            )
+        col2.metric(
+            "Information Ratio",
+            f"{ir:.2f}"
+        )
 
-        with col3:
-            st.metric(
-                "DV01",
-                f"{dv01:.4f}"
-            )
+        col3.metric(
+            "DV01",
+            f"{dv01:.4f}"
+        )
 
-        with col4:
-            st.metric(
-                "Convexité",
-                f"{convexity:.2f}"
-            )
+        col4.metric(
+            "Convexité",
+            f"{convexity:.2f}"
+        )
 
         col5, col6, col7, col8 = st.columns(4)
 
-        with col5:
-            st.metric(
-                "VaR 95 %",
-                f"{var95:.2%}"
-            )
+        col5.metric(
+            "VaR 95%",
+            f"{var95:.2%}"
+        )
 
-        with col6:
-            st.metric(
-                "CVaR 95 %",
-                f"{cvar95:.2%}"
-            )
+        col6.metric(
+            "CVaR 95%",
+            f"{cvar95:.2%}"
+        )
 
-        with col7:
-            st.metric(
-                "Max Drawdown",
-                f"{mdd:.2%}"
-            )
+        col7.metric(
+            "Max Drawdown",
+            f"{mdd:.2%}"
+        )
 
-        with col8:
-            st.metric(
-                "Sharpe",
-                f"{sharpe:.2f}"
-            )
+        col8.metric(
+            "Sharpe",
+            f"{sharpe:.2f}"
+        )
 
         st.plotly_chart(
             plot_risk_return(
@@ -156,28 +200,30 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
             ),
             width="stretch"
         )
-from modules.exports_excel import (
-    export_excel
-)
 
-excel_file = export_excel(
-    perf_metrics,
-    risk_metrics
-)
+        st.subheader("Exports")
 
-st.download_button(
+        c1, c2 = st.columns(2)
 
-    "📥 Export Excel",
+        if excel_file is not None:
 
-    data=excel_file,
+            c1.download_button(
+                "📥 Export Excel",
+                excel_file,
+                "Rapport_FCP.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
-    file_name="Rapport_FCP.xlsx",
+        if pdf_file is not None:
 
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
-    # --------------------------------------------------
+            c2.download_button(
+                "📄 Export PDF",
+                pdf_file,
+                "Rapport_Comite.pdf",
+                mime="application/pdf"
+            )
+
     # PERFORMANCES
-    # --------------------------------------------------
 
     with tab2:
 
@@ -187,13 +233,13 @@ st.download_button(
         )
 
         st.plotly_chart(
-            plot_performance(perf_df),
+            plot_performance(
+                perf_df
+            ),
             width="stretch"
         )
 
-    # --------------------------------------------------
     # RISQUES
-    # --------------------------------------------------
 
     with tab3:
 
@@ -209,9 +255,7 @@ st.download_button(
             width="stretch"
         )
 
-    # --------------------------------------------------
-    # SENSIBILITES
-    # --------------------------------------------------
+    # SENSIBILITE
 
     with tab4:
 
@@ -222,9 +266,7 @@ st.download_button(
             width="stretch"
         )
 
-    # --------------------------------------------------
     # COMITE
-    # --------------------------------------------------
 
     with tab5:
 
@@ -243,5 +285,5 @@ st.download_button(
 else:
 
     st.info(
-        "Importer FCP_Obligataire_KPIs_Report.xlsx"
+        "Importer votre fichier Excel"
     )
