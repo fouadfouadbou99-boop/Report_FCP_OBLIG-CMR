@@ -314,7 +314,7 @@ if uploaded:
 
     for col in df_sensi.columns:
 
-        if col == df_sensi.columns[0\]:
+        if col == df_sensi.columns[0]:
             continue
 
         sensi.append({
