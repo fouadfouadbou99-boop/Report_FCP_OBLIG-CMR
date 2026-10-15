@@ -202,4 +202,260 @@ if uploaded_file:
 
         fonds = {
             "SANADATE": "Perf Hebdo Sanadate",
-            
+            "BONDS": "Perf Hebdo BONDS",
+            "OBLIGATIONS": "Perf Hebdo Obligations"
+        }
+
+        benchmark_col = "Weekly Perf"
+
+        resultats = []
+
+        if benchmark_col in df_perf.columns:
+
+            benchmark = pd.to_numeric(
+                df_perf[benchmark_col],
+                errors="coerce"
+            )
+
+            for fund, col in fonds.items():
+
+                if col not in df_perf.columns:
+                    continue
+
+                r = pd.to_numeric(
+                    df_perf[col],
+                    errors="coerce"
+                )
+
+                mask = r.notna() & benchmark.notna()
+
+                r = r[mask]
+                b = benchmark[mask]
+
+                if len(r) < 2:
+                    continue
+
+                ytd = np.nan
+
+                ytd_col = col.replace(
+                    "Perf Hebdo",
+                    "Perf YTD"
+                )
+
+                if ytd_col in df_perf.columns:
+
+                    ytd_values = pd.to_numeric(
+                        df_perf[ytd_col],
+                        errors="coerce"
+                    ).dropna()
+
+                    if not ytd_values.empty:
+                        ytd = ytd_values.iloc[-1]
+
+                resultats.append({
+
+                    "Fonds": fund,
+                    "Perf YTD": ytd,
+                    "Perf Annualisée": annual_return(r),
+                    "Volatilité": annual_vol(r),
+                    "Sharpe": sharpe_ratio(r),
+                    "Sortino": sortino_ratio(r),
+                    "Alpha": alpha(r, b),
+                    "Beta": beta(r, b),
+                    "VaR95": historical_var(r),
+                    "VaR99": var99(r),
+                    "CVaR": cvar(r),
+                    "Max Drawdown": max_drawdown(r),
+                    "Calmar": calmar_ratio(r),
+                    "Tracking Error": tracking_error(r, b),
+                    "Information Ratio": information_ratio(r, b)
+
+                })
+
+        kpi_df = pd.DataFrame(resultats)
+
+        if not kpi_df.empty:
+
+            st.subheader("Matrice KPI")
+
+            st.dataframe(
+                kpi_df.style.format({
+                    "Perf YTD": "{:.2%}",
+                    "Perf Annualisée": "{:.2%}",
+                    "Volatilité": "{:.2%}",
+                    "Alpha": "{:.2%}",
+                    "Sharpe": "{:.2f}",
+                    "Sortino": "{:.2f}",
+                    "Calmar": "{:.2f}",
+                    "VaR95": "{:.2%}",
+                    "VaR99": "{:.2%}",
+                    "CVaR": "{:.2%}",
+                    "Max Drawdown": "{:.2%}",
+                    "Tracking Error": "{:.2%}",
+                    "Information Ratio": "{:.2f}"
+                }),
+                use_container_width=True
+            )
+
+            classement = kpi_df.copy()
+
+            classement["Score"] = (
+                0.30 * classement["Perf YTD"].rank(pct=True)
+                + 0.25 * classement["Sharpe"].rank(pct=True)
+                + 0.15 * classement["Sortino"].rank(pct=True)
+                + 0.10 * classement["Calmar"].rank(pct=True)
+                + 0.10 * (-classement["Tracking Error"]).rank(pct=True)
+                + 0.10 * (-classement["Max Drawdown"]).rank(pct=True)
+            )
+
+            classement = classement.sort_values(
+                "Score",
+                ascending=False
+            )
+
+            classement.insert(
+                0,
+                "Rang",
+                range(1, len(classement) + 1)
+            )
+
+            st.subheader("Classement Global")
+
+            st.dataframe(
+                classement[
+                    [
+                        "Rang",
+                        "Fonds",
+                        "Perf YTD",
+                        "Sharpe",
+                        "Sortino",
+                        "Calmar",
+                        "Score"
+                    ]
+                ].style.format({
+                    "Perf YTD": "{:.2%}",
+                    "Sharpe": "{:.2f}",
+                    "Sortino": "{:.2f}",
+                    "Calmar": "{:.2f}",
+                    "Score": "{:.2f}"
+                }),
+                use_container_width=True
+            )
+
+            fig1 = px.bar(
+                kpi_df,
+                x="Fonds",
+                y="Perf YTD",
+                color="Fonds",
+                title="Performance YTD"
+            )
+
+            st.plotly_chart(fig1, use_container_width=True)
+
+            base100 = pd.DataFrame()
+
+            if "Date" in df_perf.columns:
+                base100["Date"] = pd.to_datetime(df_perf["Date"])
+
+            perf_cols = {
+                "SANADATE": "Perf Hebdo Sanadate",
+                "BONDS": "Perf Hebdo BONDS",
+                "OBLIGATIONS": "Perf Hebdo Obligations",
+                "MBI MT": "Weekly Perf"
+            }
+
+            for nom, col in perf_cols.items():
+
+                if col in df_perf.columns:
+
+                    serie = pd.to_numeric(
+                        df_perf[col],
+                        errors="coerce"
+                    ).fillna(0)
+
+                    base100[nom] = (
+                        100 * (1 + serie).cumprod()
+                    )
+
+            if not base100.empty and "Date" in base100.columns:
+
+                fig2 = px.line(
+                    base100,
+                    x="Date",
+                    y=[
+                        c for c in base100.columns
+                        if c != "Date"
+                    ],
+                    title="Evolution Base 100"
+                )
+
+                st.plotly_chart(
+                    fig2,
+                    use_container_width=True
+                )
+
+            if df_sensi is not None:
+
+                st.subheader("Sensibilités Moyennes")
+
+                valid_cols = [
+                    "SANADATE",
+                    "BONDS",
+                    "OBLIGATIONS",
+                    "MBI MT"
+                ]
+
+                sensi_data = []
+
+                for col in valid_cols:
+
+                    if col in df_sensi.columns:
+
+                        sensi_data.append({
+
+                            "Fonds": col,
+
+                            "Sensibilité":
+                            pd.to_numeric(
+                                df_sensi[col],
+                                errors="coerce"
+                            ).mean()
+
+                        })
+
+                sensi_df = pd.DataFrame(sensi_data)
+
+                st.dataframe(
+                    sensi_df.style.format({
+                        "Sensibilité": "{:.2f}"
+                    }),
+                    use_container_width=True
+                )
+
+            st.subheader("Commentaire Comité")
+
+            meilleur = classement.iloc[0]
+
+            commentaire = f"""
+Le fonds actuellement le mieux classé est {meilleur['Fonds']}.
+
+Sa performance YTD ressort à {meilleur['Perf YTD']:.2%}
+pour une performance annualisée de
+{meilleur['Perf Annualisée']:.2%}.
+
+Le ratio de Sharpe atteint
+{meilleur['Sharpe']:.2f}
+et le ratio de Sortino
+{meilleur['Sortino']:.2f}.
+
+Le classement tient compte simultanément
+du rendement, du Sharpe, du Sortino,
+du Calmar, du Tracking Error
+et du Drawdown.
+"""
+
+            st.info(commentaire)
+
+    except Exception as e:
+
+        st.error(f"Erreur de traitement : {e}")
