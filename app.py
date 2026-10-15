@@ -362,10 +362,10 @@ Le fonds le mieux classé selon le ratio de Sharpe est
 Sa performance annualisée ressort à
 {meilleur['Perf Annualisée']:.2%%}
 pour une volatilité de
-{meilleur['Volatilité'\]:.2%}.
+{meilleur['Volatilité']:.2%}.
 
 Le ratio de Sharpe atteint
-{meilleur['Sharpe'\]:.2f},
+{meilleur['Sharpe']:.2f},
 témoignant d'une meilleure efficacité
 risque/rendement relativement aux autres
 fonds étudiés.
