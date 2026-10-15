@@ -9,94 +9,100 @@ st.set_page_config(
 )
 
 # =====================================================
-# CHARGEMENT DATA
+# CHARGEMENT
 # =====================================================
 
 @st.cache_data
-def load_data(file):
+def load_excel(file):
 
     xls = pd.ExcelFile(file)
 
-    perf_sheet = xls.sheet_names[0]
-    sensi_sheet = xls.sheet_names[1]
+    sheets = xls.sheet_names
 
     df_perf = pd.read_excel(
         file,
-        sheet_name=perf_sheet
+        sheet_name=sheets[0]
     )
 
-    df_sensi = pd.read_excel(
-        file,
-        sheet_name=sensi_sheet
-    )
+    df_sensi = None
+
+    if len(sheets) > 1:
+        df_sensi = pd.read_excel(
+            file,
+            sheet_name=sheets[1]
+        )
 
     return df_perf, df_sensi
 
 
 # =====================================================
-# FONCTIONS RISQUE / RENDEMENT
+# KPI
 # =====================================================
 
 def annual_return(r):
-
     return r.mean() * 52
 
 
 def annual_vol(r):
-
     return r.std() * np.sqrt(52)
 
 
-def sharpe(r, rf=0):
-
+def sharpe_ratio(r, rf=0):
     vol = annual_vol(r)
 
-    if vol == 0:
+    if vol == 0 or np.isnan(vol):
         return np.nan
 
     return (annual_return(r) - rf) / vol
 
 
-def sortino(r, rf=0):
+def sortino_ratio(r, rf=0):
 
     downside = r[r < 0]
 
     if len(downside) == 0:
         return np.nan
 
-    dvol = downside.std() * np.sqrt(52)
+    downside_vol = downside.std() * np.sqrt(52)
 
-    return (annual_return(r) - rf) / dvol
+    if downside_vol == 0:
+        return np.nan
+
+    return (annual_return(r) - rf) / downside_vol
 
 
 def historical_var(r):
-
-    return np.percentile(r, 5)
+    return np.percentile(r.dropna(), 5)
 
 
 def cvar(r):
 
     var = historical_var(r)
 
-    return r[r <= var].mean()
+    losses = r[r <= var]
+
+    if len(losses) == 0:
+        return np.nan
+
+    return losses.mean()
 
 
 def max_drawdown(r):
 
-    wealth = (1 + r).cumprod()
+    wealth = (1 + r.fillna(0)).cumprod()
 
-    peak = wealth.cummax()
+    running_max = wealth.cummax()
 
-    dd = (wealth - peak) / peak
+    drawdown = (wealth - running_max) / running_max
 
-    return dd.min()
+    return drawdown.min()
 
 
 def tracking_error(portfolio, benchmark):
 
-    excess = portfolio - benchmark
+    active = portfolio - benchmark
 
-    return excess.std() * np.sqrt(52)
+    return active.std() * np.sqrt(52)
 
 
 def information_ratio(portfolio, benchmark):
@@ -105,7 +111,7 @@ def information_ratio(portfolio, benchmark):
 
     te = active.std() * np.sqrt(52)
 
-    if te == 0:
+    if te == 0 or np.isnan(te):
         return np.nan
 
     return (active.mean() * 52) / te
@@ -117,263 +123,250 @@ def information_ratio(portfolio, benchmark):
 
 st.title("📊 Dashboard FCP Obligataires")
 
-uploaded = st.file_uploader(
+uploaded_file = st.file_uploader(
     "Charger le fichier Excel",
     type=["xlsx"]
 )
 
-if uploaded:
+if uploaded_file:
 
-    df_perf, df_sensi = load_data(uploaded)
+    try:
 
-    # =================================================
-    # DETECTION AUTOMATIQUE
-    # =================================================
+        df_perf, df_sensi = load_excel(uploaded_file)
 
-    fonds = {
-        "SANADATE": "Perf Hebdo Sanadate",
-        "BONDS": "Perf Hebdo BONDS",
-        "OBLIGATIONS": "Perf Hebdo Obligations"
-    }
+        st.success("Fichier chargé avec succès")
 
-    benchmark_col = "Weekly Perf"
+        st.subheader("Aperçu des données")
 
-    benchmark = pd.to_numeric(
-        df_perf[benchmark_col],
-        errors="coerce"
-    )
+        st.dataframe(df_perf.head())
 
-    # ===============================================
-    # KPI
-    # ===============================================
+        fonds = {
+            "SANADATE": "Perf Hebdo Sanadate",
+            "BONDS": "Perf Hebdo BONDS",
+            "OBLIGATIONS": "Perf Hebdo Obligations"
+        }
 
-    kpis = []
+        benchmark_col = "Weekly Perf"
 
-    for fund, col in fonds.items():
+        resultats = []
 
-        if col not in df_perf.columns:
-            continue
+        if benchmark_col in df_perf.columns:
 
-        r = pd.to_numeric(
-            df_perf[col],
-            errors="coerce"
-        )
-
-        mask = (
-            r.notna()
-            &
-            benchmark.notna()
-        )
-
-        r = r[mask]
-        b = benchmark[mask]
-
-        ytd_col = col.replace(
-            "Perf Hebdo",
-            "Perf YTD"
-        )
-
-        ytd = np.nan
-
-        if ytd_col in df_perf.columns:
-
-            ytd = pd.to_numeric(
-                df_perf[ytd_col],
+            benchmark = pd.to_numeric(
+                df_perf[benchmark_col],
                 errors="coerce"
-            ).iloc[-1]
-
-        kpis.append({
-
-            "Fonds": fund,
-
-            "Perf YTD":
-                ytd,
-
-            "Perf Annualisée":
-                annual_return(r),
-
-            "Volatilité":
-                annual_vol(r),
-
-            "Sharpe":
-                sharpe(r),
-
-            "Sortino":
-                sortino(r),
-
-            "VaR 95%":
-                historical_var(r),
-
-            "CVaR":
-                cvar(r),
-
-            "Max Drawdown":
-                max_drawdown(r),
-
-            "Tracking Error":
-                tracking_error(r, b),
-
-            "Information Ratio":
-                information_ratio(r, b)
-
-        })
-
-    kpi_df = pd.DataFrame(kpis)
-
-    # =================================================
-    # DASHBOARD KPI
-    # =================================================
-
-    st.subheader("Classement des Fonds")
-
-    classement = kpi_df.sort_values(
-        "Sharpe",
-        ascending=False
-    )
-
-    st.dataframe(
-        classement.style.format({
-            "Perf YTD":"{:.2%}",
-            "Perf Annualisée":"{:.2%}",
-            "Volatilité":"{:.2%}",
-            "Sharpe":"{:.2f}",
-            "Sortino":"{:.2f}",
-            "VaR 95%":"{:.2%}",
-            "CVaR":"{:.2%}",
-            "Max Drawdown":"{:.2%}",
-            "Tracking Error":"{:.2%}",
-            "Information Ratio":"{:.2f}"
-        }),
-        use_container_width=True
-    )
-
-    # =================================================
-    # GRAPHIQUE YTD
-    # =================================================
-
-    st.subheader("Performance YTD")
-
-    fig = px.bar(
-        kpi_df,
-        x="Fonds",
-        y="Perf YTD",
-        color="Fonds",
-        text_auto=".2%"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-    # =================================================
-    # BASE 100
-    # =================================================
-
-    st.subheader("Evolution Base 100")
-
-    perf_cols = {
-        "SANADATE":"Perf Hebdo Sanadate",
-        "BONDS":"Perf Hebdo BONDS",
-        "OBLIGATIONS":"Perf Hebdo Obligations",
-        "MBI MT":"Weekly Perf"
-    }
-
-    base100 = pd.DataFrame()
-
-    for nom, col in perf_cols.items():
-
-        if col in df_perf.columns:
-
-            serie = pd.to_numeric(
-                df_perf[col],
-                errors="coerce"
-            ).fillna(0)
-
-            base100[nom] = (
-                100 * (1 + serie).cumprod()
             )
 
-    fig2 = px.line(
-        base100,
-        title="Comparaison Base 100"
-    )
+            for fund, col in fonds.items():
 
-    st.plotly_chart(
-        fig2,
-        use_container_width=True
-    )
+                if col not in df_perf.columns:
+                    continue
 
-    # =================================================
-    # SENSIBILITE
-    # =================================================
+                r = pd.to_numeric(
+                    df_perf[col],
+                    errors="coerce"
+                )
 
-    st.subheader("Sensibilité Moyenne")
+                mask = (
+                    r.notna()
+                    &
+                    benchmark.notna()
+                )
 
-    sensi = []
+                r = r[mask]
+                b = benchmark[mask]
 
-    for col in df_sensi.columns:
+                if len(r) < 2:
+                    continue
 
-        if col == df_sensi.columns[0]:
-            continue
+                ytd = np.nan
 
-        sensi.append({
-            "Fonds": col,
-            "Sensibilité":
-            pd.to_numeric(
-                df_sensi[col],
-                errors="coerce"
-            ).mean()
-        })
+                ytd_col = col.replace(
+                    "Perf Hebdo",
+                    "Perf YTD"
+                )
 
-    sensi_df = pd.DataFrame(sensi)
+                if ytd_col in df_perf.columns:
 
-    st.dataframe(
-        sensi_df.style.format({
-            "Sensibilité":"{:.2f}"
-        }),
-        use_container_width=True
-    )
+                    ytd_series = pd.to_numeric(
+                        df_perf[ytd_col],
+                        errors="coerce"
+                    ).dropna()
 
-    fig3 = px.bar(
-        sensi_df,
-        x="Fonds",
-        y="Sensibilité",
-        color="Fonds"
-    )
+                    if not ytd_series.empty:
+                        ytd = ytd_series.iloc[-1]
 
-    st.plotly_chart(
-        fig3,
-        use_container_width=True
-    )
+                resultats.append({
 
-    # =================================================
-    # COMMENTAIRES AUTOMATIQUES
-    # =================================================
+                    "Fonds": fund,
 
-    st.subheader("Commentaire Comité de Gestion")
+                    "Perf YTD": ytd,
 
-    meilleur = classement.iloc[0]
+                    "Perf Annualisée":
+                        annual_return(r),
 
-    commentaire = f"""
+                    "Volatilité":
+                        annual_vol(r),
+
+                    "Sharpe":
+                        sharpe_ratio(r),
+
+                    "Sortino":
+                        sortino_ratio(r),
+
+                    "VaR 95%":
+                        historical_var(r),
+
+                    "CVaR":
+                        cvar(r),
+
+                    "Max Drawdown":
+                        max_drawdown(r),
+
+                    "Tracking Error":
+                        tracking_error(r, b),
+
+                    "Information Ratio":
+                        information_ratio(r, b)
+
+                })
+
+        kpi_df = pd.DataFrame(resultats)
+
+        if not kpi_df.empty:
+
+            st.subheader("Matrice KPI")
+
+            st.dataframe(
+                kpi_df.style.format({
+                    "Perf YTD": "{:.2%}",
+                    "Perf Annualisée": "{:.2%}",
+                    "Volatilité": "{:.2%}",
+                    "Sharpe": "{:.2f}",
+                    "Sortino": "{:.2f}",
+                    "VaR 95%": "{:.2%}",
+                    "CVaR": "{:.2%}",
+                    "Max Drawdown": "{:.2%}",
+                    "Tracking Error": "{:.2%}",
+                    "Information Ratio": "{:.2f}"
+                }),
+                use_container_width=True
+            )
+
+            classement = kpi_df.sort_values(
+                by="Sharpe",
+                ascending=False
+            )
+
+            st.subheader("Classement")
+
+            st.dataframe(
+                classement,
+                use_container_width=True
+            )
+
+            fig1 = px.bar(
+                kpi_df,
+                x="Fonds",
+                y="Perf YTD",
+                color="Fonds",
+                title="Performance YTD"
+            )
+
+            st.plotly_chart(
+                fig1,
+                use_container_width=True
+            )
+
+            base100 = pd.DataFrame()
+
+            cols_perf = {
+                "SANADATE": "Perf Hebdo Sanadate",
+                "BONDS": "Perf Hebdo BONDS",
+                "OBLIGATIONS": "Perf Hebdo Obligations",
+                "MBI MT": "Weekly Perf"
+            }
+
+            for nom, col in cols_perf.items():
+
+                if col in df_perf.columns:
+
+                    serie = pd.to_numeric(
+                        df_perf[col],
+                        errors="coerce"
+                    ).fillna(0)
+
+                    base100[nom] = (
+                        100 * (1 + serie).cumprod()
+                    )
+
+            if not base100.empty:
+
+                fig2 = px.line(
+                    base100,
+                    title="Evolution Base 100"
+                )
+
+                st.plotly_chart(
+                    fig2,
+                    use_container_width=True
+                )
+
+            if df_sensi is not None:
+
+                st.subheader("Sensibilités")
+
+                sensi_data = []
+
+                for col in df_sensi.columns[1:]:
+
+                    val = pd.to_numeric(
+                        df_sensi[col],
+                        errors="coerce"
+                    ).mean()
+
+                    sensi_data.append({
+                        "Fonds": col,
+                        "Sensibilité": val
+                    })
+
+                sensi_df = pd.DataFrame(sensi_data)
+
+                st.dataframe(
+                    sensi_df,
+                    use_container_width=True
+                )
+
+            st.subheader("Commentaire Comité")
+
+            meilleur = classement.iloc[0]
+
+            commentaire = f"""
 Le fonds le mieux classé selon le ratio de Sharpe est
 {meilleur['Fonds']}.
 
-Sa performance annualisée ressort à
-{meilleur['Perf Annualisée']:.2%%}
-pour une volatilité de
+La performance annualisée ressort à
+{meilleur['Perf Annualisée']:.2%}.
+
+La volatilité observée atteint
 {meilleur['Volatilité']:.2%}.
 
-Le ratio de Sharpe atteint
+Le ratio de Sharpe s'établit à
 {meilleur['Sharpe']:.2f},
-témoignant d'une meilleure efficacité
-risque/rendement relativement aux autres
-fonds étudiés.
-
-L'analyse des sensibilités devra être
-surveillée afin d'évaluer l'impact
-d'un éventuel déplacement de la courbe
-des taux sur les performances futures.
+ce qui traduit la meilleure efficacité
+risque/rendement de l'échantillon.
 """
 
-    st.info(commentaire)
+            st.info(commentaire)
+
+        else:
+
+            st.warning(
+                "Aucune donnée exploitable trouvée."
+            )
+
+    except Exception as e:
+
+        st.error(
+            f"Erreur de traitement : {e}"
+        )
